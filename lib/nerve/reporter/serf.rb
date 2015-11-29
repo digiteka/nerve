@@ -17,6 +17,12 @@ class Nerve::Reporter
       @data        = "#{service['host']}:#{service['port']}"
       @config_file = File.join(@config_dir,"zzz_nerve_#{@name}.json")
       File.unlink @config_file if File.exists? @config_file
+
+      # Special addition: report to a second serf
+      # This will only happen if the directory exists...
+      @config_dir_local = service['serf_config_dir_local'] || '/etc/serf_local'
+      @config_file_local = File.join(@config_dir_local,"zzz_nerve_#{@name}.json")
+      File.unlink @config_file_local if File.exists? @config_file_local
     end
 
     def start()
@@ -49,16 +55,19 @@ class Nerve::Reporter
       @cleanup_thread = Thread.new do
         sleep 2
         FileUtils.touch @config_file if File.exists? @config_file
+        FileUtils.touch @config_file_local if File.exists? @config_file_local
         sleep 2
         must_hup = false
         oldest = Time.new.to_i - 3
-        Dir.glob(File.join(@config_dir,'zzz_nerve_*.json')).each do |file|
+        (Dir.glob(File.join(@config_dir,'zzz_nerve_*.json')) + Dir.glob(File.join(@config_dir_local,'zzz_nerve_*.json'))).
+        each do |file|
           if File.stat(file).mtime.to_i < oldest
             log.info "cleaning up old file #{file} from serf config"
             File.unlink(file)
             must_hup = true
           end
         end
+
         log.info "reload serf since files have changed"
         system("/usr/bin/killall -HUP serf")
       end
@@ -71,12 +80,14 @@ class Nerve::Reporter
 
     def report_down
       File.unlink(@config_file)
+      File.unlink(@config_file_local) if File.exists? @config_file_local
       system("/usr/bin/killall -HUP serf")
     end
 
     def update_data(new_data='')
       @data = new_data if new_data
       File.write(@config_file, JSON.generate({tags:{"smart:#{@name}"=>@data}}))
+      File.write(@config_file_local, JSON.generate({tags:{"smart:#{@name}"=>@data}})) if File.directory? @config_dir_local
       system("/usr/bin/killall -HUP serf")
     end
 
