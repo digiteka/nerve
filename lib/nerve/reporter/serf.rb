@@ -15,8 +15,6 @@ class Nerve::Reporter
 
       # FIXME: support IPv6?
       @data        = "#{service['host']}:#{service['port']}"
-      @data_enabled  = @data
-      @data_disabled = "#{@data} disabled"
       @config_file = File.join(@config_dir,"zzz_nerve_#{@name}.json")
       File.unlink @config_file if File.exists? @config_file
 
@@ -77,17 +75,13 @@ class Nerve::Reporter
     end
 
     def report_up()
-      update_data(@data_enabled)
+      update_data(false)
     end
 
-#    def report_down
-#      File.unlink(@config_file)
-#      File.unlink(@config_file_local) if File.exists? @config_file_local
-#      system("/usr/bin/killall -HUP serf")
-#    end
-
     def report_down
-      update_data(@data_disabled)
+      File.unlink(@config_file)
+      File.unlink(@config_file_local) if File.exists? @config_file_local
+      system("/usr/bin/killall -HUP serf")
     end
 
     def update_data(new_data='')
