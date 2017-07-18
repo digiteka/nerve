@@ -75,8 +75,7 @@ class Nerve::Reporter
     end
 
     def report_up()
-      @data = @data[0..-10] if @data.end_with?('disabled')
-      update_data(false)
+      update_data("#{service['host']}:#{service['port']}")
     end
 
 #    def report_down
@@ -86,8 +85,7 @@ class Nerve::Reporter
 #    end
 
     def report_down
-      @data = "#{@data} disabled" unless @data.end_with?('disabled')
-      update_data(false)
+      update_data("#{service['host']}:#{service['port']} disabled")
     end
 
     def update_data(new_data='')
