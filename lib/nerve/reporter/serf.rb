@@ -75,13 +75,19 @@ class Nerve::Reporter
     end
 
     def report_up()
+      @data = @data[0..-10] if @data.end_with?('disabled')
       update_data(false)
     end
 
+#    def report_down
+#      File.unlink(@config_file)
+#      File.unlink(@config_file_local) if File.exists? @config_file_local
+#      system("/usr/bin/killall -HUP serf")
+#    end
+
     def report_down
-      File.unlink(@config_file)
-      File.unlink(@config_file_local) if File.exists? @config_file_local
-      system("/usr/bin/killall -HUP serf")
+      @data = "#{@data} disabled" unless @data.end_with?('disabled')
+      update_data(false)
     end
 
     def update_data(new_data='')
